@@ -118,44 +118,35 @@ test("Date data type", function () {
 });
 
 test("DateTime data type", function () {
-    expect(9);
+    expect(7);
     
     var d = new iCalendar.DateTime();
     //Remember that JavaScript is stupid and that January is 0.
     var date = new Date(1997, 6, 14, 12, 0, 0);
     d.fromiCal("19970714T120000");
-    ok(d.getValue().valueOf() === date.valueOf());
-    d.setValue(date);
+    ok(d.getValue().date.valueOf() === date.valueOf());
+    ok(!d.getValue().UTC);
+    
+    d.setValue({date: date, UTC: false});
     ok(d.toiCal() === "19970714T120000");
-    ok(d.getValue().valueOf() === date.valueOf());
+    ok(d.getValue().date.valueOf() === date.valueOf());
 
     // Having a Z at the end means it's UTC:
     d.fromiCal("19970714T120000Z");
-    ok(d.timezone === 'UTC');
+    ok(d.getValue().UTC);
     
     // Setting it to UTC means a Z on the end:
-    d = new iCalendar.DateTime('UTC');
-    d.setValue(date);
+    d = new iCalendar.DateTime();
+    d.setValue({date: date, UTC: true});
     ok(d.toiCal() === "19970714T120000Z");
-    ok(d.getValue().valueOf() === date.valueOf());
-
-    // Any other timezone, and the Z stays off:
-    d = new iCalendar.DateTime('Europe/Paris');
-    d.setValue(date);
-    ok(d.toiCal() === "19970714T120000");
-    ok(d.getValue().valueOf() === date.valueOf());
-
-    // A timezone parameter and a Z raises an error:
-    d = new iCalendar.DateTime('Europe/Paris');
-    d.fromiCal("19970714T120000Z");
-    raises(function () {d.getValue(); }, /DateTime is in UTC format/);
+    ok(d.getValue().date.valueOf() === date.valueOf());
     
 });
 
 
 test("Duration data type", function () {
-    expect(24);
-    
+    expect(28);
+
     var d = new iCalendar.Duration();
     d.fromiCal("P15DT5H0M20S");
     var v = d.getValue();
@@ -165,6 +156,9 @@ test("Duration data type", function () {
     ok(v.hours === 5);
     ok(v.minutes === 0);
     ok(v.seconds === 20);
+    
+    d.setValue({days: 15, hours: 5, seconds: 20});
+    ok(d.toiCal() === "P15DT5H0M20S");
     
     d = new iCalendar.Duration();
     d.fromiCal("PT15M");
@@ -176,6 +170,9 @@ test("Duration data type", function () {
     ok(v.minutes === 15);
     ok(v.seconds === 0);
 
+    d.setValue({minutes: 15, negative: false});
+    ok(d.toiCal() === "PT15M");
+
     d = new iCalendar.Duration();
     d.fromiCal("-P2D");
     v = d.getValue();
@@ -185,6 +182,9 @@ test("Duration data type", function () {
     ok(v.hours === 0);
     ok(v.minutes === 0);
     ok(v.seconds === 0);
+
+    d.setValue({days: 2, negative: true});
+    ok(d.toiCal() === "-P2D");
     
     d = new iCalendar.Duration();
     d.fromiCal("-PT30M");
@@ -195,6 +195,9 @@ test("Duration data type", function () {
     ok(v.hours === 0);
     ok(v.minutes === 30);
     ok(v.seconds === 0);
+    
+    d.setValue({minutes: 30, negative: true});
+    ok(d.toiCal() === "-PT30M");
 });
 
 test("Float data type", function () {
@@ -228,37 +231,55 @@ test("Int data type", function () {
 });
 
 test("Period data type", function () {
-    expect(9);
+    expect(12);
     
     var start = new Date(1997, 0, 1, 18, 0, 0);
     var end = new Date(1997, 0, 2, 7, 0, 0);
     var d = new iCalendar.Period();
-    
+
+    // From datetime to datetime
     d.fromiCal("19970101T180000Z/19970102T070000Z");
-    ok(d.timezone === 'UTC');
     var v = d.getValue();
-    ok(v.start.valueOf() === start.valueOf());
-    ok(v.end.valueOf() === end.valueOf());
+    ok(v.start.getValue().date.valueOf() === start.valueOf());
+    ok(v.start.getValue().UTC);
+    ok(v.end.getValue().date.valueOf() === end.valueOf());
+    ok(v.end.getValue().UTC);
 
     d = new iCalendar.Period();
-    d.setValue({start: start, end: end});
+    var s = new iCalendar.DateTime();
+    var e = new iCalendar.DateTime();
+    s.setValue({date: start, UTC: false});
+    e.setValue({date: end, UTC: false});
+    
+    d.setValue({start: s, end: e});
     ok(d.toiCal() === "19970101T180000/19970102T070000");
         
-    d = new iCalendar.Period('UTC');
-    d.setValue({start: start, end: end});
+    d = new iCalendar.Period();
+    s.setValue({date: start, UTC: true});
+    e.setValue({date: end, UTC: true});
+    d.setValue({start: s, end: e});
     ok(d.toiCal() === "19970101T180000Z/19970102T070000Z");
 
+    // Using duration
     d.fromiCal("19970101T180000Z/PT5H30M");
     v = d.getValue();
-    ok(v.start.valueOf() === start.valueOf());
-    ok(v.end.hours === 5);
-    ok(v.end.minutes === 30);
-    ok(v.end.negative === false);
+    ok(v.start.getValue().date.valueOf() === start.valueOf());
+    ok(v.start.getValue().UTC);
+    ok(v.end.getValue().hours === 5);
+    ok(v.end.getValue().minutes === 30);
+    ok(v.end.getValue().negative === false);
+
+    var p = new iCalendar.Duration();
+    s.setValue({date: start, UTC: true});
+    p.setValue({hours: 5, minutes: 30});
+    
+    d.setValue({start: s, end: p});
+    ok(d.toiCal() === "19970101T180000Z/PT5H30M");
     
 });
 
 test("Recur data type", function () {
-    expect(21);
+    expect(23);
     
     var d = new iCalendar.Recur();
     d.fromiCal("FREQ=DAILY;COUNT=10;INTERVAL=2");
@@ -278,7 +299,8 @@ test("Recur data type", function () {
     ok(v.FREQ === 'YEARLY');
     ok(v.BYMONTH.join() === "4");
     ok(v.BYDAY.join() === '-1SU');
-    ok(v.UNTIL.valueOf() === new Date(1973, 3, 29, 7, 0, 0).valueOf());
+    ok(v.UNTIL.date.valueOf() === new Date(1973, 3, 29, 7, 0, 0).valueOf());
+    ok(v.UNTIL.UTC);
         
     d.fromiCal("FREQ=YEARLY;INTERVAL=2;BYMONTH=1;BYDAY=SU;BYHOUR=8,9;BYMINUTE=30");
     v = d.getValue();
@@ -297,7 +319,8 @@ test("Recur data type", function () {
     ok(v.BYMONTH.length === 1);
     ok(v.BYMONTH[0] === 10);
     ok(v.BYDAY.join() === '-1SU');
-    ok(v.UNTIL.valueOf() === new Date(2006, 9, 29, 6, 0, 0).valueOf());
+    ok(v.UNTIL.date.valueOf() === new Date(2006, 9, 29, 6, 0, 0).valueOf());
+    ok(v.UNTIL.UTC);
 });
 
 test("Text data type", function () {
@@ -336,26 +359,26 @@ test("Time data type", function () {
     
     d = new iCalendar.Time();
     d.fromiCal("133000Z");
-    ok(d.timezone === 'UTC');
     v = d.getValue();
     ok(v.hour === 13);
     ok(v.minute === 30);
     ok(v.second === 0);
+    ok(v.UTC);
     
-    d = new iCalendar.Time('UTC');
-    d.setValue({hour: 13, minute: 30, second: 0});
+    d = new iCalendar.Time();
+    d.setValue({hour: 13, minute: 30, second: 0, UTC: true});
     ok(d.toiCal() === "133000Z");
 
-    d = new iCalendar.Time("America/New_York");
+    d = new iCalendar.Time();
     d.fromiCal("083000");
-    ok(d.timezone === 'America/New_York');
     v = d.getValue();
     ok(v.hour === 8);
     ok(v.minute === 30);
     ok(v.second === 0);
+    ok(!v.UTC);
     
-    d = new iCalendar.Time('America/New_York');
-    d.setValue({hour: 8, minute: 30, second: 0});
+    d = new iCalendar.Time();
+    d.setValue({hour: 8, minute: 30, second: 0, UTC: false});
     ok(d.toiCal() === "083000");
     
 });

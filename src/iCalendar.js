@@ -95,29 +95,6 @@ var iCalendar = {};
         return this.value;
     };
 
-    // Base class for values that have a time zone
-    function TimeZonedValue(timezone) {
-        this.timezone = timezone;
-    }
-    
-    TimeZonedValue.prototype = new Value();
-    TimeZonedValue.prototype.constructor = TimeZonedValue.constructor;
-    TimeZonedValue.prototype.timezone = undefined;
-
-    TimeZonedValue.prototype.fromiCal = function (data) {
-        if (data.substring(data.length - 1) === 'Z') {
-            // This is an UTC value
-            if (this.timezone !== undefined && this.timezone !== 'UTC') {
-                // No exceptions should be raised when setting values, so
-                // we set a flag, and raise the value during getValue() instead.
-                this.timezone = null;
-            } else {
-                this.timezone = 'UTC';
-            }
-        }
-        this.value = data;
-    };
-    
     
     // BINARY data type
     function BinaryValue() {
@@ -207,22 +184,21 @@ var iCalendar = {};
     iCalendar.Date = DateValue;
 
     // DATE-TIME data type
-    function DateTimeValue(timezone) {
-        this.timezone = timezone;
+    function DateTimeValue() {
     }
     
-    DateTimeValue.prototype = new TimeZonedValue();
+    DateTimeValue.prototype = new Value();
     DateTimeValue.prototype.constructor = DateTimeValue.constructor;
 
     DateTimeValue.prototype.setValue = function (data) {
-        var y = data.getFullYear().toString();
-        var m = leadingZero((data.getMonth() + 1));
-        var d = leadingZero(data.getDate());
-        var H = leadingZero(data.getHours());
-        var M = leadingZero(data.getMinutes());
-        var S = leadingZero(data.getSeconds());
+        var y = data.date.getFullYear().toString();
+        var m = leadingZero((data.date.getMonth() + 1));
+        var d = leadingZero(data.date.getDate());
+        var H = leadingZero(data.date.getHours());
+        var M = leadingZero(data.date.getMinutes());
+        var S = leadingZero(data.date.getSeconds());
         var Z = '';
-        if (this.timezone === 'UTC') {
+        if (data.UTC === true) {
             Z = 'Z';
         }
         
@@ -230,16 +206,14 @@ var iCalendar = {};
     };
 
     DateTimeValue.prototype.getValue = function () {
-        if (this.timezone === null) {
-            throw new TypeError("DateTime is in UTC format, but has a timezone parameter");
-        }
-        return new Date(parseInt(this.value.substring(0, 4), 10),
-                        parseInt(this.value.substring(4, 6), 10) - 1,
-                        parseInt(this.value.substring(6, 8), 10),
-                        parseInt(this.value.substring(9, 11), 10),
-                        parseInt(this.value.substring(11, 13), 10),
-                        parseInt(this.value.substring(13, 15), 10)
-            );
+        return {date: new Date(parseInt(this.value.substring(0, 4), 10),
+                               parseInt(this.value.substring(4, 6), 10) - 1,
+                               parseInt(this.value.substring(6, 8), 10),
+                               parseInt(this.value.substring(9, 11), 10),
+                               parseInt(this.value.substring(11, 13), 10),
+                               parseInt(this.value.substring(13, 15), 10)),
+                UTC: this.value.substring(15, 16) === 'Z'
+               };
     };
     
     iCalendar.DateTime = DateTimeValue;
@@ -253,14 +227,43 @@ var iCalendar = {};
     DurationValue.prototype.constructor = DurationValue.constructor;
     
     DurationValue.prototype.setValue = function (data) {
-        var y = data.getFullYear().toString();
-        var m = leadingZero((data.getMonth() + 1));
-        var d = data.getDate().toString();
-        var H = leadingZero(data.getHours());
-        var M = leadingZero(data.getMinutes());
-        var S = leadingZero(data.getSeconds());
+        var result = "P";
         
-        this.value =  y + m + d + 'T' + H + M + S;
+        if (data.weeks) {
+            result = result + data.weeks + "W";
+        }
+
+        if (data.days) {
+            result = result + data.days + "D";
+        }
+        
+        if (data.hours || data.minutes || data.seconds) {
+            result = result + "T";
+        }
+
+        if (data.hours) {
+            result = result + data.hours + "H";
+        }
+        
+        if (data.minutes) {
+            result = result + data.minutes + "M";
+        } else if (data.hours && data.seconds) {
+            // The spec is unclear on whether you have to add minutes when you
+            // specify both hour and seconds even if minutes is zero. It doesn't
+            // specifically say so, but the example does. So we do to:
+            result = result + "0M";
+        }
+        
+        if (data.seconds) {
+            result = result + data.seconds + "S";
+        }
+        
+        if (data.negative) {
+            result = '-' + result
+        }
+        
+        this.value = result;
+        
     };
     
     DurationValue.prototype.getValue = function () {
@@ -330,47 +333,14 @@ var iCalendar = {};
     iCalendar.Integer = IntegerValue;
 
     // PERIOD data type
-    function PeriodValue(timezone) {
-        this.timezone = timezone;
+    function PeriodValue() {
     }
     
-    PeriodValue.prototype = new TimeZonedValue();
+    PeriodValue.prototype = new Value();
     PeriodValue.prototype.constructor = PeriodValue.constructor;
 
-    PeriodValue.prototype.fromiCal = function (data) {
-        var parts;
-        
-        parts = data.split('/');
-    
-        // We assume the end date is UTC if start date is UTC.
-        if (parts[0][parts[0].length - 1] === 'Z') {
-            // This is an UTC value
-            if (this.timezone !== undefined && this.timezone !== 'UTC') {
-                // No exceptions should be raised when setting values, so
-                // we set a flag, and raise the value during getValue() instead.
-                this.timezone = null;
-            } else {
-                this.timezone = 'UTC';
-            }
-        }
-        this.value = data;
-    };
-    
     PeriodValue.prototype.setValue = function (data) {
-        var start, end;
-        
-        start = new DateTimeValue(this.timezone);
-        start.setValue(data.start);
-        if (data.end.toDateString !== undefined) {
-            // This is a Date
-            end = new DateTimeValue(this.timezone);
-        } else {
-            // This is a duration
-            end = new DurationValue();
-        }
-        end.setValue(data.end);
-        
-        this.value = start.toiCal() + '/' + end.toiCal();
+        this.value = data.start.toiCal() + '/' + data.end.toiCal();
     };
     
     PeriodValue.prototype.getValue = function () {
@@ -393,7 +363,7 @@ var iCalendar = {};
         end.fromiCal(parts[1]);
         
         // Now return the values of start and end:
-        var result = {start: start.getValue(), end: end.getValue()};
+        var result = {start: start, end: end};
         return result;
     };
     
@@ -484,7 +454,7 @@ var iCalendar = {};
         this.timezone = timezone;
     }
     
-    TimeValue.prototype = new TimeZonedValue();
+    TimeValue.prototype = new Value();
     TimeValue.prototype.constructor = TimeValue.constructor;
     
     TimeValue.prototype.setValue = function (data) {
@@ -492,7 +462,7 @@ var iCalendar = {};
         var M = leadingZero(data.minute);
         var S = leadingZero(data.second);
         var Z = '';
-        if (this.timezone === 'UTC') {
+        if (data.UTC === true) {
             Z = 'Z';
         }
     
@@ -500,12 +470,10 @@ var iCalendar = {};
     };
     
     TimeValue.prototype.getValue = function () {
-        if (this.timezone === null) {
-            throw new TypeError("DateTime is in UTC format, but has a timezone parameter");
-        }
         return {hour: parseInt(this.value.substring(0, 2), 10),
             minute: parseInt(this.value.substring(2, 4), 10),
-            second: parseInt(this.value.substring(4, 6), 10)
+            second: parseInt(this.value.substring(4, 6), 10),
+            UTC: this.value.substring(6, 7) === 'Z'
             };
     };
     
