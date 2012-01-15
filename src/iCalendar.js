@@ -13,13 +13,13 @@ var iCalendar = {};
     var RE_PARAM_NAME_SPLIT = /(=)(?=(?:[^"]|"[^"]*")*$)/;
     
     // Makes quoted data unquoted. Does nothing with unquoted data
-    //function unquote(data) {
-        //if (data[0] === '"' || data[data.length - 1] === '"') {
-            //return data.substring(1, data.length - 1);
-        //} else {
-            //return data;
-        //}
-    //}
+    function unquote(data) {
+        if (data[0] === '"' || data[data.length - 1] === '"') {
+            return data.substring(1, data.length - 1);
+        } else {
+            return data;
+        }
+    }
     
     function leadingZero(i) {
         i = i.toString();
@@ -60,7 +60,7 @@ var iCalendar = {};
     
     
     //*********************
-    //* Value Data types
+    //* Value data types
     //*********************
     
     // Data types know how to serialize and de-serialize themselves. They
@@ -77,8 +77,6 @@ var iCalendar = {};
     function Value() {	
     }
     
-    Value.prototype.ical_value = '';
-        
     Value.prototype.fromiCal = function (data) {
         this.value = data;
     };
@@ -95,6 +93,8 @@ var iCalendar = {};
         return this.value;
     };
 
+    iCalendar.Value = Value;
+    
     
     // BINARY data type
     function BinaryValue() {
@@ -349,7 +349,7 @@ var iCalendar = {};
         parts = this.value.split('/');
         
         // Use the DateTimeValue to decode the icalendar data
-        start = new DateTimeValue(this.timezone);
+        start = new DateTimeValue();
         start.fromiCal(parts[0]);
         if (parts[1][0] === '-' ||
                 parts[1][0] === '0' ||
@@ -358,7 +358,7 @@ var iCalendar = {};
             end = new DurationValue();
         } else {
             // The end is specified as a datetime
-            end = new DateTimeValue(this.timezone);
+            end = new DateTimeValue();
         }
         end.fromiCal(parts[1]);
         
@@ -450,8 +450,7 @@ var iCalendar = {};
     iCalendar.Text = TextValue;
 
     // TIME data type
-    function TimeValue(timezone) {
-        this.timezone = timezone;
+    function TimeValue() {
     }
     
     TimeValue.prototype = new Value();
@@ -539,9 +538,68 @@ var iCalendar = {};
     
     iCalendar.UTCOffset = UTCOffsetValue;
 
-    //*********************
-    //* Properties
-    //*********************
+
+    //***********************
+    //* Parameters
+    //***********************
+
+    // This is a mapping of parameters to types:
+    
+    PARAMETER_TYPES = {
+        'ALTREP': URIValue,
+        'CN': CalAddressValue,
+        'CUTYPE': Value,
+        'DELEGATED-FROM': CalAddressValue,
+        'DELEGATED-TO': CalAddressValue,
+        'DIR': URIValue,
+    };
+
+    QUOTED_PARAMETERS = [
+        'ALTREP', 'DELEGATED-FROM', 'DELEGATED-TO', 'DIR'
+    ];
+    
+    function Parameter() {
+    }
+    
+    Parameter.prototype.fromiCal = function (data) {
+        var parts, type;
+        parts = data.split(RE_PARAM_NAME_SPLIT);
+        this.name = parts[0];
+        type = PARAMETER_TYPES[this.name];
+        if (!type) {
+            type = Value;
+        }
+        this.value = new type();
+        if (QUOTED_PARAMETERS.indexOf(this.name) === -1) {
+            this.value.fromiCal(parts[2]);
+        } else {
+            this.value.fromiCal(unquote(parts[2]));
+        }
+    };
+    
+    Parameter.prototype.toiCal = function () {
+        if (QUOTED_PARAMETERS.indexOf(this.name) === -1) {
+            return this.name + "=" + this.value.toiCal();
+        } else {
+            return this.name + "=\"" + this.value.toiCal() + "\"";
+        }
+    };
+    
+    // For consistency only. Using .value directly is fine.
+    Parameter.prototype.setValue = function (data) {
+        this.value = data;
+    };
+    
+    // For consistency only. Using .value directly is fine.
+    Parameter.prototype.getValue = function () {
+        return this.value;
+    };
+
+    iCalendar.Parameter = Parameter;
+
+    //***********************
+    //* Property data types
+    //***********************
     
     // Base Property
     function Property() {
@@ -556,11 +614,11 @@ var iCalendar = {};
         //}
     //}
     
-    Property.prototype.parameters = {};
+    Property.prototype.parameters = [];
     Property.prototype.encoding = 'UTF-8';
     
-    Property.prototype.parse = function (data) {
-        var parameters, parameter, i;
+    Property.prototype.fromiCal = function (data) {
+        var parameters, parameter, parameter_type, value, i;
     
         // Extract the name and parameters:
         parameters = RE_PROP_NAMEPARAMS.exec(data)[0];
@@ -570,20 +628,42 @@ var iCalendar = {};
         // Get the name:
         this.name = RE_PROP_NAME.exec(parameters)[1];
         
+        // Reset the parameters so nothing remains from previous parsing
+        this.parameters = [];
+        
         // Extract the parameters:
         parameters = parameters.substring(this.name.length + 1, parameters.length - 1);
+        
+        if (parameters === ':') {
+            return;
+        }
         
         // Handle each parameter:
         parameters = parameters.split(RE_PARAM_SPLIT);
         for (i = 0; i < parameters.length; i++) {
             if (parameters[i] !== ';') {
-                parameter = parameters[i].split(RE_PARAM_NAME_SPLIT);
-                this.parameters[parameter[0]] = parameter[2];
-                
+                property = new Parameter();
+                property.fromiCal(parameters[i]);
+                this.parameters.push(property);
             }
         }
     
     };
+
+    Property.prototype.toiCal = function (data) {
+        var result, i;
+        
+        result = this.name;
+        
+        for (i in this.parameters) {
+            result = result + ';' + this.parameters[i].toiCal()
+        }
+        
+        result = result + ':' + this.value;
+        return result;
+    
+    };
+    
     
     iCalendar.Property = Property;
 

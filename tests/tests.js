@@ -422,17 +422,104 @@ test("Content line parsing", function () {
     expect(6);
     
     var p = new iCalendar.Property();
-    p.parse('DESCRIPTION:This is really simple and with no quotes or anything');
+    p.fromiCal('DESCRIPTION:This is really simple and with no quotes or anything');
     ok(p.name === 'DESCRIPTION');
     ok(p.value === "This is really simple and with no quotes or anything");
         
     p = new iCalendar.Property();
-    p.parse('DESCRIPTION;ALTREP="cid:part1.0001@example.org";X-FOO="Semicolon; works":The Fall\'98 Wild "Wizards" Conference: - Las Vegas\\, NV; USA');
+    p.fromiCal('DESCRIPTION;ALTREP="cid:part1.0001@example.org";X-FOO="Semicolon; works":The Fall\'98 Wild "Wizards" Conference: - Las Vegas\\, NV; USA');
     ok(p.name === 'DESCRIPTION');
     ok(p.value === "The Fall\'98 Wild \"Wizards\" Conference: - Las Vegas\\, NV; USA");
-    // This is not unquoted, as I'm doing this on a Property() and not a
-    // Description(). Properties don't know what to quote and not.
-    ok(p.parameters.ALTREP === '"cid:part1.0001@example.org"');
-    ok(p.parameters['X-FOO'] === '"Semicolon; works"');
+    ok(p.parameters[0].value.getValue() === 'cid:part1.0001@example.org');
+    // Since what value type x-params have is undefined, we keep the quotes:
+    ok(p.parameters[1].value.getValue() === '"Semicolon; works"');
     
+});
+
+
+test("ALTREP Parameter", function () {
+    expect(4);
+    
+    var ical = 'DESCRIPTION;ALTREP="CID:part3.msg.970415T083000@example.com":Project XYZ Review Meeting will include the following agenda items: (a) Market Overview\, (b) Finances\, (c) Project Management';
+    var p = new iCalendar.Property()
+    p.fromiCal(ical);
+    
+    ok(p.parameters[0].name === 'ALTREP');
+    ok(p.parameters[0].value instanceof iCalendar.URI);
+    ok(p.parameters[0].value.getValue() === "CID:part3.msg.970415T083000@example.com");
+    ok(p.toiCal() === ical);
+});
+
+test("CN Parameter", function () {
+    expect(4);
+
+    var ical = 'ORGANIZER;CN="John Smith":mailto:jsmith@example.com';
+    var p = new iCalendar.Property()
+    p.fromiCal(ical);
+    
+    ok(p.parameters[0].name === 'CN');
+    ok(p.parameters[0].value instanceof iCalendar.CalAddress);
+    // Yes, this exampe encloses CN in quotes, but CN is not a quoted value, so the quotes stay.
+    ok(p.parameters[0].value.getValue() === "\"John Smith\"");
+    ok(p.toiCal() === ical);
+});
+
+test("CUTYPE Parameter", function () {
+    expect(4);
+
+    var ical = 'ATTENDEE;CUTYPE=GROUP:mailto:ietf-calsch@example.org';
+    var p = new iCalendar.Property()
+    p.fromiCal(ical);
+    
+    ok(p.parameters[0].name === 'CUTYPE');
+    ok(p.parameters[0].value instanceof iCalendar.Value);
+    ok(p.parameters[0].value.getValue() === "GROUP");
+    ok(p.toiCal() === ical);
+    
+});
+
+test("DELEGATED-FROM Parameter", function () {
+    expect(4    );
+
+    var ical = 'ATTENDEE;DELEGATED-FROM="mailto:jsmith@example.com":mailto:jdoe@example.com';
+    var p = new iCalendar.Property()
+    p.fromiCal(ical);
+
+    ok(p.parameters[0].name === 'DELEGATED-FROM');
+    ok(p.parameters[0].value instanceof iCalendar.CalAddress);
+    ok(p.parameters[0].value.getValue() === "mailto:jsmith@example.com");
+    ok(p.toiCal() === ical);
+
+});
+
+test("DELEGATED-TO Parameter", function () {
+    expect(5);
+
+    // XXX Current problem: Multiple parameters fail.
+    var ical = 'ATTENDEE;DELEGATED-TO="mailto:jdoe@example.com","mailto:jqpublic@example.com":mailto:jsmith@example.com';
+    var p = new iCalendar.Property()
+    p.fromiCal(ical);
+
+    ok(p.parameters[0].name === 'DELEGATED-TO');
+    ok(p.parameters[0].value instanceof iCalendar.CalAddress);
+    ok(p.parameters[0].value.getValue() === "mailto:jdoe@example.com");
+    ok(p.parameters[0].value.getValue() === "mailto:jqpublic@example.com");
+    ok(p.parameters.length === 2);
+    ok(p.toiCal() === ical);
+    
+});
+
+test("DIR Parameter", function () {
+    expect(4);
+
+    
+    var ical = 'ORGANIZER;DIR="ldap://example.com:6666/o=ABC%20Industries,c=US???(cn=Jim%20Dolittle)":mailto:jimdo@example.com';
+    var p = new iCalendar.Property()
+    p.fromiCal(ical);
+
+    ok(p.parameters[0].name === 'DIR');
+    ok(p.parameters[0].value instanceof iCalendar.URI);        
+    ok(p.parameters[0].value.getValue() === "ldap://example.com:6666/o=ABC%20Industries,c=US???(cn=Jim%20Dolittle)");
+    ok(p.toiCal() === ical);
+
 });
