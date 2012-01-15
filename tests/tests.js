@@ -430,9 +430,9 @@ test("Content line parsing", function () {
     p.fromiCal('DESCRIPTION;ALTREP="cid:part1.0001@example.org";X-FOO="Semicolon; works":The Fall\'98 Wild "Wizards" Conference: - Las Vegas\\, NV; USA');
     ok(p.name === 'DESCRIPTION');
     ok(p.value === "The Fall\'98 Wild \"Wizards\" Conference: - Las Vegas\\, NV; USA");
-    ok(p.parameters[0].value.getValue() === 'cid:part1.0001@example.org');
+    ok(p.parameters[0].values[0].getValue() === 'cid:part1.0001@example.org');
     // Since what value type x-params have is undefined, we keep the quotes:
-    ok(p.parameters[1].value.getValue() === '"Semicolon; works"');
+    ok(p.parameters[1].values[0].getValue() === '"Semicolon; works"');
     
 });
 
@@ -445,8 +445,8 @@ test("ALTREP Parameter", function () {
     p.fromiCal(ical);
     
     ok(p.parameters[0].name === 'ALTREP');
-    ok(p.parameters[0].value instanceof iCalendar.URI);
-    ok(p.parameters[0].value.getValue() === "CID:part3.msg.970415T083000@example.com");
+    ok(p.parameters[0].values[0] instanceof iCalendar.URI);
+    ok(p.parameters[0].values[0].getValue() === "CID:part3.msg.970415T083000@example.com");
     ok(p.toiCal() === ical);
 });
 
@@ -458,9 +458,9 @@ test("CN Parameter", function () {
     p.fromiCal(ical);
     
     ok(p.parameters[0].name === 'CN');
-    ok(p.parameters[0].value instanceof iCalendar.CalAddress);
+    ok(p.parameters[0].values[0] instanceof iCalendar.CalAddress);
     // Yes, this exampe encloses CN in quotes, but CN is not a quoted value, so the quotes stay.
-    ok(p.parameters[0].value.getValue() === "\"John Smith\"");
+    ok(p.parameters[0].values[0].getValue() === "\"John Smith\"");
     ok(p.toiCal() === ical);
 });
 
@@ -472,8 +472,8 @@ test("CUTYPE Parameter", function () {
     p.fromiCal(ical);
     
     ok(p.parameters[0].name === 'CUTYPE');
-    ok(p.parameters[0].value instanceof iCalendar.Value);
-    ok(p.parameters[0].value.getValue() === "GROUP");
+    ok(p.parameters[0].values[0] instanceof iCalendar.Value);
+    ok(p.parameters[0].values[0].getValue() === "GROUP");
     ok(p.toiCal() === ical);
     
 });
@@ -486,14 +486,14 @@ test("DELEGATED-FROM Parameter", function () {
     p.fromiCal(ical);
 
     ok(p.parameters[0].name === 'DELEGATED-FROM');
-    ok(p.parameters[0].value instanceof iCalendar.CalAddress);
-    ok(p.parameters[0].value.getValue() === "mailto:jsmith@example.com");
+    ok(p.parameters[0].values[0] instanceof iCalendar.CalAddress);
+    ok(p.parameters[0].values[0].getValue() === "mailto:jsmith@example.com");
     ok(p.toiCal() === ical);
 
 });
 
 test("DELEGATED-TO Parameter", function () {
-    expect(5);
+    expect(7);
 
     // XXX Current problem: Multiple parameters fail.
     var ical = 'ATTENDEE;DELEGATED-TO="mailto:jdoe@example.com","mailto:jqpublic@example.com":mailto:jsmith@example.com';
@@ -501,10 +501,11 @@ test("DELEGATED-TO Parameter", function () {
     p.fromiCal(ical);
 
     ok(p.parameters[0].name === 'DELEGATED-TO');
-    ok(p.parameters[0].value instanceof iCalendar.CalAddress);
-    ok(p.parameters[0].value.getValue() === "mailto:jdoe@example.com");
-    ok(p.parameters[0].value.getValue() === "mailto:jqpublic@example.com");
-    ok(p.parameters.length === 2);
+    ok(p.parameters[0].values[0] instanceof iCalendar.CalAddress);
+    ok(p.parameters[0].values[0].getValue() === "mailto:jdoe@example.com");
+    ok(p.parameters[0].values[1] instanceof iCalendar.CalAddress);
+    ok(p.parameters[0].values[1].getValue() === "mailto:jqpublic@example.com");
+    ok(p.parameters[0].values.length === 2);
     ok(p.toiCal() === ical);
     
 });
@@ -512,14 +513,13 @@ test("DELEGATED-TO Parameter", function () {
 test("DIR Parameter", function () {
     expect(4);
 
-    
     var ical = 'ORGANIZER;DIR="ldap://example.com:6666/o=ABC%20Industries,c=US???(cn=Jim%20Dolittle)":mailto:jimdo@example.com';
     var p = new iCalendar.Property()
     p.fromiCal(ical);
 
     ok(p.parameters[0].name === 'DIR');
-    ok(p.parameters[0].value instanceof iCalendar.URI);        
-    ok(p.parameters[0].value.getValue() === "ldap://example.com:6666/o=ABC%20Industries,c=US???(cn=Jim%20Dolittle)");
+    ok(p.parameters[0].values[0] instanceof iCalendar.URI);        
+    ok(p.parameters[0].values[0].getValue() === "ldap://example.com:6666/o=ABC%20Industries,c=US???(cn=Jim%20Dolittle)");
     ok(p.toiCal() === ical);
 
 });

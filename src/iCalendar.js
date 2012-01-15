@@ -9,8 +9,9 @@ var iCalendar = {};
     // Property parsing regular exporessions
     var RE_PROP_NAME = /(.*?)[:;]/;
     var RE_PROP_NAMEPARAMS = /.*?(:)(?=(?:[^"]|"[^"]*")*$)/;
-    var RE_PARAM_SPLIT = /(;)(?=(?:[^"]|"[^"]*")*$)/;
-    var RE_PARAM_NAME_SPLIT = /(=)(?=(?:[^"]|"[^"]*")*$)/;
+    var RE_PARAM_SPLIT = /;(?=(?:[^"]|"[^"]*")*$)/;
+    var RE_PARAM_NAME_SPLIT = /=(?=(?:[^"]|"[^"]*")*$)/;
+    var RE_PARAM_MULTI_SPLIT= /,(?=(?:[^"]|"[^"]*")*$)/;
     
     // Makes quoted data unquoted. Does nothing with unquoted data
     function unquote(data) {
@@ -562,37 +563,49 @@ var iCalendar = {};
     }
     
     Parameter.prototype.fromiCal = function (data) {
-        var parts, type;
+        var parts, type, values, value, i;
         parts = data.split(RE_PARAM_NAME_SPLIT);
         this.name = parts[0];
+        
         type = PARAMETER_TYPES[this.name];
         if (!type) {
             type = Value;
         }
-        this.value = new type();
-        if (QUOTED_PARAMETERS.indexOf(this.name) === -1) {
-            this.value.fromiCal(parts[2]);
-        } else {
-            this.value.fromiCal(unquote(parts[2]));
+    
+        this.values = []
+        values = parts[1].split(RE_PARAM_MULTI_SPLIT);
+        for (i in values) {
+            value = new type();
+            if (QUOTED_PARAMETERS.indexOf(this.name) === -1) {
+                value.setValue(values[i])
+            } else {
+                value.setValue(unquote(values[i]))
+            }
+            this.values.push(value);
         }
     };
     
     Parameter.prototype.toiCal = function () {
-        if (QUOTED_PARAMETERS.indexOf(this.name) === -1) {
-            return this.name + "=" + this.value.toiCal();
-        } else {
-            return this.name + "=\"" + this.value.toiCal() + "\"";
+        var i;
+        var result = [];
+    
+        for (i in this.values) {
+            
+            if (QUOTED_PARAMETERS.indexOf(this.name) === -1) {
+                result.push(this.values[i].toiCal());
+            } else {
+                result.push('"' + this.values[i].toiCal() + '"');
+            }
         }
+        return this.name + "=" + result.join(',');
     };
     
-    // For consistency only. Using .value directly is fine.
-    Parameter.prototype.setValue = function (data) {
-        this.value = data;
+    Parameter.prototype.setValues = function (data) {
+        this.values = data;
     };
     
-    // For consistency only. Using .value directly is fine.
-    Parameter.prototype.getValue = function () {
-        return this.value;
+    Parameter.prototype.getValues = function () {
+        return this.values;
     };
 
     iCalendar.Parameter = Parameter;
@@ -641,11 +654,9 @@ var iCalendar = {};
         // Handle each parameter:
         parameters = parameters.split(RE_PARAM_SPLIT);
         for (i = 0; i < parameters.length; i++) {
-            if (parameters[i] !== ';') {
-                property = new Parameter();
-                property.fromiCal(parameters[i]);
-                this.parameters.push(property);
-            }
+            property = new Parameter();
+            property.fromiCal(parameters[i]);
+            this.parameters.push(property);
         }
     
     };
