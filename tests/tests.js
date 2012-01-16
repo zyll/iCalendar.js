@@ -430,111 +430,104 @@ test("Content line parsing", function () {
     p.fromiCal('DESCRIPTION;ALTREP="cid:part1.0001@example.org";X-FOO="Semicolon; works":The Fall\'98 Wild "Wizards" Conference: - Las Vegas\\, NV; USA');
     ok(p.name === 'DESCRIPTION');
     ok(p.value === "The Fall\'98 Wild \"Wizards\" Conference: - Las Vegas\\, NV; USA");
-    ok(p.parameters[0].values[0].getValue() === 'cid:part1.0001@example.org');
+    ok(p.parameters['ALTREP'][0].getValue() === 'cid:part1.0001@example.org');
     // Since what value type x-params have is undefined, we keep the quotes:
-    ok(p.parameters[1].values[0].getValue() === '"Semicolon; works"');
+    ok(p.parameters['X-FOO'][0].getValue() === '"Semicolon; works"');
     
 });
 
 
 test("ALTREP Parameter", function () {
-    expect(4);
+    expect(3);
     
     var ical = 'DESCRIPTION;ALTREP="CID:part3.msg.970415T083000@example.com":Project XYZ Review Meeting will include the following agenda items: (a) Market Overview\, (b) Finances\, (c) Project Management';
     var p = new iCalendar.Property()
     p.fromiCal(ical);
     
-    ok(p.parameters[0].name === 'ALTREP');
-    ok(p.parameters[0].values[0] instanceof iCalendar.URI);
-    ok(p.parameters[0].values[0].getValue() === "CID:part3.msg.970415T083000@example.com");
+    ok(p.parameters['ALTREP'][0] instanceof iCalendar.URI);
+    ok(p.parameters['ALTREP'][0].getValue() === "CID:part3.msg.970415T083000@example.com");
     ok(p.toiCal() === ical);
 });
 
 test("CN Parameter", function () {
-    expect(4);
+    expect(3);
 
     var ical = 'ORGANIZER;CN="John Smith":mailto:jsmith@example.com';
     var p = new iCalendar.Property()
     p.fromiCal(ical);
     
-    ok(p.parameters[0].name === 'CN');
-    ok(p.parameters[0].values[0] instanceof iCalendar.CalAddress);
+    ok(p.parameters['CN'][0] instanceof iCalendar.CalAddress);
     // Yes, this exampe encloses CN in quotes, but CN is not a quoted value, so the quotes stay.
-    ok(p.parameters[0].values[0].getValue() === "\"John Smith\"");
+    ok(p.parameters['CN'][0].getValue() === "\"John Smith\"");
     ok(p.toiCal() === ical);
 });
 
 test("CUTYPE Parameter", function () {
-    expect(4);
+    expect(3);
 
     var ical = 'ATTENDEE;CUTYPE=GROUP:mailto:ietf-calsch@example.org';
     var p = new iCalendar.Property()
     p.fromiCal(ical);
     
-    ok(p.parameters[0].name === 'CUTYPE');
-    ok(p.parameters[0].values[0] instanceof iCalendar.Value);
-    ok(p.parameters[0].values[0].getValue() === "GROUP");
+    ok(p.parameters['CUTYPE'][0] instanceof iCalendar.Value);
+    ok(p.parameters['CUTYPE'][0].getValue() === "GROUP");
     ok(p.toiCal() === ical);
     
 });
 
 test("DELEGATED-FROM Parameter", function () {
-    expect(4    );
+    expect(3);
 
     var ical = 'ATTENDEE;DELEGATED-FROM="mailto:jsmith@example.com":mailto:jdoe@example.com';
     var p = new iCalendar.Property()
     p.fromiCal(ical);
 
-    ok(p.parameters[0].name === 'DELEGATED-FROM');
-    ok(p.parameters[0].values[0] instanceof iCalendar.CalAddress);
-    ok(p.parameters[0].values[0].getValue() === "mailto:jsmith@example.com");
+    ok(p.parameters['DELEGATED-FROM'][0] instanceof iCalendar.CalAddress);
+    ok(p.parameters['DELEGATED-FROM'][0].getValue() === "mailto:jsmith@example.com");
     ok(p.toiCal() === ical);
 
 });
 
 test("DELEGATED-TO Parameter", function () {
-    expect(7);
+    expect(6);
 
     // XXX Current problem: Multiple parameters fail.
     var ical = 'ATTENDEE;DELEGATED-TO="mailto:jdoe@example.com","mailto:jqpublic@example.com":mailto:jsmith@example.com';
     var p = new iCalendar.Property()
     p.fromiCal(ical);
 
-    ok(p.parameters[0].name === 'DELEGATED-TO');
-    ok(p.parameters[0].values[0] instanceof iCalendar.CalAddress);
-    ok(p.parameters[0].values[0].getValue() === "mailto:jdoe@example.com");
-    ok(p.parameters[0].values[1] instanceof iCalendar.CalAddress);
-    ok(p.parameters[0].values[1].getValue() === "mailto:jqpublic@example.com");
-    ok(p.parameters[0].values.length === 2);
+    ok(p.parameters['DELEGATED-TO'][0] instanceof iCalendar.CalAddress);
+    ok(p.parameters['DELEGATED-TO'][0].getValue() === "mailto:jdoe@example.com");
+    ok(p.parameters['DELEGATED-TO'][1] instanceof iCalendar.CalAddress);
+    ok(p.parameters['DELEGATED-TO'][1].getValue() === "mailto:jqpublic@example.com");
+    ok(p.parameters['DELEGATED-TO'].length === 2);
     ok(p.toiCal() === ical);
     
 });
 
 test("DIR Parameter", function () {
-    expect(4);
+    expect(3);
 
     var ical = 'ORGANIZER;DIR="ldap://example.com:6666/o=ABC%20Industries,c=US???(cn=Jim%20Dolittle)":mailto:jimdo@example.com';
     var p = new iCalendar.Property()
     p.fromiCal(ical);
 
-    ok(p.parameters[0].name === 'DIR');
-    ok(p.parameters[0].values[0] instanceof iCalendar.URI);        
-    ok(p.parameters[0].values[0].getValue() === "ldap://example.com:6666/o=ABC%20Industries,c=US???(cn=Jim%20Dolittle)");
+    ok(p.parameters['DIR'][0] instanceof iCalendar.URI);        
+    ok(p.parameters['DIR'][0].getValue() === "ldap://example.com:6666/o=ABC%20Industries,c=US???(cn=Jim%20Dolittle)");
     ok(p.toiCal() === ical);
 
 });
 
 test("FMTYPE/ENCODING/VALUE Parameters", function () {
-    expect(14);
+    expect(10);
 
     var ical = 'ATTACH;FMTTYPE=application/msword:ftp://example.com/pub/docs/agenda.doc';
     var p = new iCalendar.Property()
 
     p.fromiCal(ical);
 
-    ok(p.parameters[0].name === 'FMTTYPE');
-    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
-    ok(p.parameters[0].values[0].getValue() === "application/msword");
+    ok(p.parameters['FMTTYPE'][0] instanceof iCalendar.Value);        
+    ok(p.parameters['FMTTYPE'][0].getValue() === "application/msword");
     ok(p.toiCal() === ical);
 
     ical = ['ATTACH;FMTTYPE=text/plain;ENCODING=BASE64;VALUE=BINARY:TG9yZW',
@@ -551,88 +544,80 @@ test("FMTYPE/ENCODING/VALUE Parameters", function () {
 
     p.fromiCal(ical);
 
-    ok(p.parameters[0].name === 'FMTTYPE');
-    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
-    ok(p.parameters[0].values[0].getValue() === "text/plain");
+    ok(p.parameters['FMTTYPE'][0] instanceof iCalendar.Value);        
+    ok(p.parameters['FMTTYPE'][0].getValue() === "text/plain");
 
-    ok(p.parameters[1].name === 'ENCODING');
-    ok(p.parameters[1].values[0] instanceof iCalendar.Value);        
-    ok(p.parameters[1].values[0].getValue() === "BASE64");
+    ok(p.parameters['ENCODING'][0] instanceof iCalendar.Value);        
+    ok(p.parameters['ENCODING'][0].getValue() === "BASE64");
 
-    ok(p.parameters[2].name === 'VALUE');
-    ok(p.parameters[2].values[0] instanceof iCalendar.Value);        
-    ok(p.parameters[2].values[0].getValue() === "BINARY");
+    ok(p.parameters['VALUE'][0] instanceof iCalendar.Value);        
+    ok(p.parameters['VALUE'][0].getValue() === "BINARY");
     ok(p.toiCal() === ical);
 
 });
 
 test("FBTYPE Parameter", function () {
-    expect(4);
+    expect(3);
 
     var ical = 'FREEBUSY;FBTYPE=BUSY:19980415T133000Z/19980415T170000Z';
     var p = new iCalendar.Property()
     p.fromiCal(ical);
 
-    ok(p.parameters[0].name === 'FBTYPE');
-    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
-    ok(p.parameters[0].values[0].getValue() === "BUSY");
+    ok(p.parameters['FBTYPE'][0] instanceof iCalendar.Value);        
+    ok(p.parameters['FBTYPE'][0].getValue() === "BUSY");
     ok(p.toiCal() === ical);
 
 });
 
 test("LANGUAGE Parameter", function () {
-    expect(4);
+    expect(3);
 
     var ical = 'SUMMARY;LANGUAGE=en-US:Company Holiday Party';
     var p = new iCalendar.Property()
     p.fromiCal(ical);
 
-    ok(p.parameters[0].name === 'LANGUAGE');
-    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
-    ok(p.parameters[0].values[0].getValue() === "en-US");
+    ok(p.parameters['LANGUAGE'][0] instanceof iCalendar.Value);        
+    ok(p.parameters['LANGUAGE'][0].getValue() === "en-US");
     ok(p.toiCal() === ical);
 
 });
 
 test("MEMBER Parameter", function () {
-    expect(4);
+    expect(3);
 
     var ical = 'ATTENDEE;MEMBER="mailto:ietf-calsch@example.org":mailto:jsmith@example.com';
     var p = new iCalendar.Property()
     p.fromiCal(ical);
 
-    ok(p.parameters[0].name === 'MEMBER');
-    ok(p.parameters[0].values[0] instanceof iCalendar.CalAddress);        
-    ok(p.parameters[0].values[0].getValue() === "mailto:ietf-calsch@example.org");
+    ok(p.parameters['MEMBER'][0] instanceof iCalendar.CalAddress);        
+    ok(p.parameters['MEMBER'][0].getValue() === "mailto:ietf-calsch@example.org");
     ok(p.toiCal() === ical);
 
 });
 
 test("PARTSTAT Parameter", function () {
-    expect(4);
+    expect(3);
 
     var ical = 'ATTENDEE;PARTSTAT=DECLINED:mailto:jsmith@example.com';
     var p = new iCalendar.Property()
     p.fromiCal(ical);
 
-    ok(p.parameters[0].name === 'PARTSTAT');
-    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
-    ok(p.parameters[0].values[0].getValue() === "DECLINED");
+    ok(p.parameters['PARTSTAT'][0] instanceof iCalendar.Value);        
+    ok(p.parameters['PARTSTAT'][0].getValue() === "DECLINED");
     ok(p.toiCal() === ical);
 
 });
 
 test("RANGE Parameter", function () {
     // I'm testing this deprecated parameter only because it's so easy anyway.
-    expect(4);
+    expect(3);
 
     var ical = 'RECURRENCE-ID;RANGE=THISANDFUTURE:19980401T133000Z';
     var p = new iCalendar.Property()
     p.fromiCal(ical);
 
-    ok(p.parameters[0].name === 'RANGE');
-    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
-    ok(p.parameters[0].values[0].getValue() === "THISANDFUTURE");
+    ok(p.parameters['RANGE'][0] instanceof iCalendar.Value);        
+    ok(p.parameters['RANGE'][0].getValue() === "THISANDFUTURE");
     ok(p.toiCal() === ical);
 
 });
@@ -640,98 +625,91 @@ test("RANGE Parameter", function () {
 
 test("RELATED Parameter", function () {
     // I'm testing this deprecated parameter only because it's so easy anyway.
-    expect(4);
+    expect(3);
 
     var ical = 'TRIGGER;RELATED=END:PT5M';
     var p = new iCalendar.Property()
     p.fromiCal(ical);
 
-    ok(p.parameters[0].name === 'RELATED');
-    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
-    ok(p.parameters[0].values[0].getValue() === "END");
+    ok(p.parameters['RELATED'][0] instanceof iCalendar.Value);        
+    ok(p.parameters['RELATED'][0].getValue() === "END");
     ok(p.toiCal() === ical);
 
 });
 
 test("RELTYPE Parameter", function () {
     // I'm testing this deprecated parameter only because it's so easy anyway.
-    expect(4);
+    expect(3);
 
     var ical = 'RELATED-TO;RELTYPE=SIBLING:19960401-080045-4000F192713@example.com';
     var p = new iCalendar.Property()
     p.fromiCal(ical);
 
-    ok(p.parameters[0].name === 'RELTYPE');
-    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
-    ok(p.parameters[0].values[0].getValue() === "SIBLING");
+    ok(p.parameters['RELTYPE'][0] instanceof iCalendar.Value);        
+    ok(p.parameters['RELTYPE'][0].getValue() === "SIBLING");
     ok(p.toiCal() === ical);
 
 });
 
 test("ROLE Parameter", function () {
     // I'm testing this deprecated parameter only because it's so easy anyway.
-    expect(4);
+    expect(3);
 
     var ical = 'ATTENDEE;ROLE=CHAIR:mailto:mrbig@example.com';
     var p = new iCalendar.Property()
     p.fromiCal(ical);
 
-    ok(p.parameters[0].name === 'ROLE');
-    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
-    ok(p.parameters[0].values[0].getValue() === "CHAIR");
+    ok(p.parameters['ROLE'][0] instanceof iCalendar.Value);        
+    ok(p.parameters['ROLE'][0].getValue() === "CHAIR");
     ok(p.toiCal() === ical);
 
 });
 
 test("RSVP Parameter", function () {
     // I'm testing this deprecated parameter only because it's so easy anyway.
-    expect(4);
+    expect(3);
 
     var ical = 'ATTENDEE;RSVP=TRUE:mailto:jsmith@example.com';
     var p = new iCalendar.Property()
     p.fromiCal(ical);
 
-    ok(p.parameters[0].name === 'RSVP');
-    ok(p.parameters[0].values[0] instanceof iCalendar.Boolean);        
-    ok(p.parameters[0].values[0].getValue() === true);
+    ok(p.parameters['RSVP'][0] instanceof iCalendar.Boolean);        
+    ok(p.parameters['RSVP'][0].getValue() === true);
     ok(p.toiCal() === ical);
 
 });
 
 test("SENT-BY Parameter", function () {
     // I'm testing this deprecated parameter only because it's so easy anyway.
-    expect(4);
+    expect(3);
 
     var ical = 'ORGANIZER;SENT-BY="mailto:sray@example.com":mailto:jsmith@example.com';
     var p = new iCalendar.Property()
     p.fromiCal(ical);
 
-    ok(p.parameters[0].name === 'SENT-BY');
-    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
-    ok(p.parameters[0].values[0].getValue() === "mailto:sray@example.com");
+    ok(p.parameters['SENT-BY'][0] instanceof iCalendar.Value);        
+    ok(p.parameters['SENT-BY'][0].getValue() === "mailto:sray@example.com");
     ok(p.toiCal() === ical);
 
 });
 
 test("TZID Parameter", function () {
     // I'm testing this deprecated parameter only because it's so easy anyway.
-    expect(8);
+    expect(6);
 
     var ical = 'DTSTART;TZID=America/New_York:19980119T020000';
     var p = new iCalendar.Property()
     p.fromiCal(ical);
 
-    ok(p.parameters[0].name === 'TZID');
-    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
-    ok(p.parameters[0].values[0].getValue() === "America/New_York");
+    ok(p.parameters['TZID'][0] instanceof iCalendar.Value);        
+    ok(p.parameters['TZID'][0].getValue() === "America/New_York");
     ok(p.toiCal() === ical);
 
     ical = 'DTEND;TZID=America/New_York:19980119T030000';
     p.fromiCal(ical);
 
-    ok(p.parameters[0].name === 'TZID');
-    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
-    ok(p.parameters[0].values[0].getValue() === "America/New_York");
+    ok(p.parameters['TZID'][0] instanceof iCalendar.Value);        
+    ok(p.parameters['TZID'][0].getValue() === "America/New_York");
     ok(p.toiCal() === ical);
 
 });

@@ -2,8 +2,9 @@ iCalendar.js
 ============
 
 This is some code I wrote to parse and generate RFC5545 in Javascript. It's
-not finished, and currently only contains parsing for the values, and not the
-properties and their parameters.
+not finished, and currently only contains parsing for the values, and
+parameters. Still to do is the iCalendar object and it's components and
+properties.
 
 
 Design decisions

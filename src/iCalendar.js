@@ -644,7 +644,7 @@ var iCalendar = {};
     Property.prototype.encoding = 'UTF-8';
     
     Property.prototype.fromiCal = function (data) {
-        var parameters, parameter, parameter_type, value, i;
+        var parameters, parameter, parameter_type, values, i, j, parts;
     
         // Extract the name and parameters:
         parameters = RE_PROP_NAMEPARAMS.exec(data)[0];
@@ -654,8 +654,8 @@ var iCalendar = {};
         // Get the name:
         this.name = RE_PROP_NAME.exec(parameters)[1];
         
-        // Reset the parameters so nothing remains from previous parsing
-        this.parameters = [];
+        // Reset the parameters so nothing remains from previous parsings
+        this.parameters = {};
         
         // Extract the parameters:
         parameters = parameters.substring(this.name.length + 1, parameters.length - 1);
@@ -667,20 +667,51 @@ var iCalendar = {};
         // Handle each parameter:
         parameters = parameters.split(RE_PARAM_SPLIT);
         for (i = 0; i < parameters.length; i++) {
-            property = new Parameter();
-            property.fromiCal(parameters[i]);
-            this.parameters.push(property);
+            //property = new Parameter();
+            //property.fromiCal(parameters[i]);
+            //this.parameters.push(property);
+            parts = parameters[i].split(RE_PARAM_NAME_SPLIT);
+            parameter = parts[0];
+            
+            type = PARAMETER_TYPES[parameter];
+            if (!type) {
+                type = Value;
+            }
+        
+            this.parameters[parameter] = []
+            values = parts[1].split(RE_PARAM_MULTI_SPLIT);
+            for (j in values) {
+                value = new type();
+                if (QUOTED_PARAMETERS.indexOf(parameter) === -1) {
+                    value.fromiCal(values[j])
+                } else {
+                    value.fromiCal(unquote(values[j]))
+                }
+                this.parameters[parameter].push(value);
+            }
         }
     
     };
 
     Property.prototype.toiCal = function (data) {
-        var result, i;
+        var result, i, j, values;
         
         result = this.name;
         
         for (i in this.parameters) {
-            result = result + ';' + this.parameters[i].toiCal()
+        
+            values = [];
+            
+            for (j in this.parameters[i]) {
+                
+                if (QUOTED_PARAMETERS.indexOf(i) === -1) {
+                    values.push(this.parameters[i][j].toiCal());
+                } else {
+                    values.push('"' + this.parameters[i][j].toiCal() + '"');
+                }
+            } 
+                
+            result = result + ';' + i +  '=' + values.join(',');            
         }
         
         result = result + ':' + this.value;
