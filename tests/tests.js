@@ -523,3 +523,215 @@ test("DIR Parameter", function () {
     ok(p.toiCal() === ical);
 
 });
+
+test("FMTYPE/ENCODING/VALUE Parameters", function () {
+    expect(14);
+
+    var ical = 'ATTACH;FMTTYPE=application/msword:ftp://example.com/pub/docs/agenda.doc';
+    var p = new iCalendar.Property()
+
+    p.fromiCal(ical);
+
+    ok(p.parameters[0].name === 'FMTTYPE');
+    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
+    ok(p.parameters[0].values[0].getValue() === "application/msword");
+    ok(p.toiCal() === ical);
+
+    ical = ['ATTACH;FMTTYPE=text/plain;ENCODING=BASE64;VALUE=BINARY:TG9yZW',
+        '0gaXBzdW0gZG9sb3Igc2l0IGFtZXQsIGNvbnNlY3RldHVyIGFkaXBpc2ljaW',
+        '5nIGVsaXQsIHNlZCBkbyBlaXVzbW9kIHRlbXBvciBpbmNpZGlkdW50IHV0IG',
+        'xhYm9yZSBldCBkb2xvcmUgbWFnbmEgYWxpcXVhLiBVdCBlbmltIGFkIG1pbm',
+        'ltIHZlbmlhbSwgcXVpcyBub3N0cnVkIGV4ZXJjaXRhdGlvbiB1bGxhbWNvIG',
+        'xhYm9yaXMgbmlzaSB1dCBhbGlxdWlwIGV4IGVhIGNvbW1vZG8gY29uc2VxdW',
+        'F0LiBEdWlzIGF1dGUgaXJ1cmUgZG9sb3IgaW4gcmVwcmVoZW5kZXJpdCBpbi',
+        'B2b2x1cHRhdGUgdmVsaXQgZXNzZSBjaWxsdW0gZG9sb3JlIGV1IGZ1Z2lhdC',
+        'BudWxsYSBwYXJpYXR1ci4gRXhjZXB0ZXVyIHNpbnQgb2NjYWVjYXQgY3VwaW',
+        'RhdGF0IG5vbiBwcm9pZGVudCwgc3VudCBpbiBjdWxwYSBxdWkgb2ZmaWNpYS',
+        'BkZXNlcnVudCBtb2xsaXQgYW5pbSBpZCBlc3QgbGFib3J1bS4='].join();
+
+    p.fromiCal(ical);
+
+    ok(p.parameters[0].name === 'FMTTYPE');
+    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
+    ok(p.parameters[0].values[0].getValue() === "text/plain");
+
+    ok(p.parameters[1].name === 'ENCODING');
+    ok(p.parameters[1].values[0] instanceof iCalendar.Value);        
+    ok(p.parameters[1].values[0].getValue() === "BASE64");
+
+    ok(p.parameters[2].name === 'VALUE');
+    ok(p.parameters[2].values[0] instanceof iCalendar.Value);        
+    ok(p.parameters[2].values[0].getValue() === "BINARY");
+    ok(p.toiCal() === ical);
+
+});
+
+test("FBTYPE Parameter", function () {
+    expect(4);
+
+    var ical = 'FREEBUSY;FBTYPE=BUSY:19980415T133000Z/19980415T170000Z';
+    var p = new iCalendar.Property()
+    p.fromiCal(ical);
+
+    ok(p.parameters[0].name === 'FBTYPE');
+    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
+    ok(p.parameters[0].values[0].getValue() === "BUSY");
+    ok(p.toiCal() === ical);
+
+});
+
+test("LANGUAGE Parameter", function () {
+    expect(4);
+
+    var ical = 'SUMMARY;LANGUAGE=en-US:Company Holiday Party';
+    var p = new iCalendar.Property()
+    p.fromiCal(ical);
+
+    ok(p.parameters[0].name === 'LANGUAGE');
+    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
+    ok(p.parameters[0].values[0].getValue() === "en-US");
+    ok(p.toiCal() === ical);
+
+});
+
+test("MEMBER Parameter", function () {
+    expect(4);
+
+    var ical = 'ATTENDEE;MEMBER="mailto:ietf-calsch@example.org":mailto:jsmith@example.com';
+    var p = new iCalendar.Property()
+    p.fromiCal(ical);
+
+    ok(p.parameters[0].name === 'MEMBER');
+    ok(p.parameters[0].values[0] instanceof iCalendar.CalAddress);        
+    ok(p.parameters[0].values[0].getValue() === "mailto:ietf-calsch@example.org");
+    ok(p.toiCal() === ical);
+
+});
+
+test("PARTSTAT Parameter", function () {
+    expect(4);
+
+    var ical = 'ATTENDEE;PARTSTAT=DECLINED:mailto:jsmith@example.com';
+    var p = new iCalendar.Property()
+    p.fromiCal(ical);
+
+    ok(p.parameters[0].name === 'PARTSTAT');
+    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
+    ok(p.parameters[0].values[0].getValue() === "DECLINED");
+    ok(p.toiCal() === ical);
+
+});
+
+test("RANGE Parameter", function () {
+    // I'm testing this deprecated parameter only because it's so easy anyway.
+    expect(4);
+
+    var ical = 'RECURRENCE-ID;RANGE=THISANDFUTURE:19980401T133000Z';
+    var p = new iCalendar.Property()
+    p.fromiCal(ical);
+
+    ok(p.parameters[0].name === 'RANGE');
+    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
+    ok(p.parameters[0].values[0].getValue() === "THISANDFUTURE");
+    ok(p.toiCal() === ical);
+
+});
+
+
+test("RELATED Parameter", function () {
+    // I'm testing this deprecated parameter only because it's so easy anyway.
+    expect(4);
+
+    var ical = 'TRIGGER;RELATED=END:PT5M';
+    var p = new iCalendar.Property()
+    p.fromiCal(ical);
+
+    ok(p.parameters[0].name === 'RELATED');
+    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
+    ok(p.parameters[0].values[0].getValue() === "END");
+    ok(p.toiCal() === ical);
+
+});
+
+test("RELTYPE Parameter", function () {
+    // I'm testing this deprecated parameter only because it's so easy anyway.
+    expect(4);
+
+    var ical = 'RELATED-TO;RELTYPE=SIBLING:19960401-080045-4000F192713@example.com';
+    var p = new iCalendar.Property()
+    p.fromiCal(ical);
+
+    ok(p.parameters[0].name === 'RELTYPE');
+    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
+    ok(p.parameters[0].values[0].getValue() === "SIBLING");
+    ok(p.toiCal() === ical);
+
+});
+
+test("ROLE Parameter", function () {
+    // I'm testing this deprecated parameter only because it's so easy anyway.
+    expect(4);
+
+    var ical = 'ATTENDEE;ROLE=CHAIR:mailto:mrbig@example.com';
+    var p = new iCalendar.Property()
+    p.fromiCal(ical);
+
+    ok(p.parameters[0].name === 'ROLE');
+    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
+    ok(p.parameters[0].values[0].getValue() === "CHAIR");
+    ok(p.toiCal() === ical);
+
+});
+
+test("RSVP Parameter", function () {
+    // I'm testing this deprecated parameter only because it's so easy anyway.
+    expect(4);
+
+    var ical = 'ATTENDEE;RSVP=TRUE:mailto:jsmith@example.com';
+    var p = new iCalendar.Property()
+    p.fromiCal(ical);
+
+    ok(p.parameters[0].name === 'RSVP');
+    ok(p.parameters[0].values[0] instanceof iCalendar.Boolean);        
+    ok(p.parameters[0].values[0].getValue() === true);
+    ok(p.toiCal() === ical);
+
+});
+
+test("SENT-BY Parameter", function () {
+    // I'm testing this deprecated parameter only because it's so easy anyway.
+    expect(4);
+
+    var ical = 'ORGANIZER;SENT-BY="mailto:sray@example.com":mailto:jsmith@example.com';
+    var p = new iCalendar.Property()
+    p.fromiCal(ical);
+
+    ok(p.parameters[0].name === 'SENT-BY');
+    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
+    ok(p.parameters[0].values[0].getValue() === "mailto:sray@example.com");
+    ok(p.toiCal() === ical);
+
+});
+
+test("TZID Parameter", function () {
+    // I'm testing this deprecated parameter only because it's so easy anyway.
+    expect(8);
+
+    var ical = 'DTSTART;TZID=America/New_York:19980119T020000';
+    var p = new iCalendar.Property()
+    p.fromiCal(ical);
+
+    ok(p.parameters[0].name === 'TZID');
+    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
+    ok(p.parameters[0].values[0].getValue() === "America/New_York");
+    ok(p.toiCal() === ical);
+
+    ical = 'DTEND;TZID=America/New_York:19980119T030000';
+    p.fromiCal(ical);
+
+    ok(p.parameters[0].name === 'TZID');
+    ok(p.parameters[0].values[0] instanceof iCalendar.Value);        
+    ok(p.parameters[0].values[0].getValue() === "America/New_York");
+    ok(p.toiCal() === ical);
+
+});

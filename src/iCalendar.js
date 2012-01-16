@@ -553,10 +553,23 @@ var iCalendar = {};
         'DELEGATED-FROM': CalAddressValue,
         'DELEGATED-TO': CalAddressValue,
         'DIR': URIValue,
+        'ENCODING': Value,
+        'FMTYPE': Value,
+        'FBTYPE': Value,
+        'LANGUAGE': Value,
+        'MEMBER': CalAddressValue,
+        'PARTSTAT': Value,
+        'RANGE': Value,
+        'RELATED': Value,
+        'RELTYPE': Value,
+        'ROLE': Value,
+        'RSVP': BooleanValue,
+        'SENT-BY': Value,
+        'VALUE': Value
     };
 
     QUOTED_PARAMETERS = [
-        'ALTREP', 'DELEGATED-FROM', 'DELEGATED-TO', 'DIR'
+        'ALTREP', 'DELEGATED-FROM', 'DELEGATED-TO', 'DIR', 'MEMBER', 'SENT-BY'
     ];
     
     function Parameter() {
@@ -577,9 +590,9 @@ var iCalendar = {};
         for (i in values) {
             value = new type();
             if (QUOTED_PARAMETERS.indexOf(this.name) === -1) {
-                value.setValue(values[i])
+                value.fromiCal(values[i])
             } else {
-                value.setValue(unquote(values[i]))
+                value.fromiCal(unquote(values[i]))
             }
             this.values.push(value);
         }
